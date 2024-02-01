@@ -1,7 +1,7 @@
 $token = '1a09d98ee62670d59b4a3f8cf8c9b99e225bce0f'
 $secret = '307a4df53674647ae67e848a102b96e178bc99ab'
-$var = [System.Environment]::GetEnvironmentVariable('KKMData', 'Machine')
-if ($var -eq "True") {
+$flag = (Get-Content "C:\Temp\DataExport.json" -Encoding "UTF8") | ConvertFrom-Json
+if ($flag.DataExportSuccess -eq "True") {
     
     $KKMData = (Get-Content "C:\ProgramData\KKMData.json" -Encoding "UTF8") | ConvertFrom-Json
     $addr = $KKMData[0].pos_address
