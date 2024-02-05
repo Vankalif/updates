@@ -1,5 +1,7 @@
-$token = '1a09d98ee62670d59b4a3f8cf8c9b99e225bce0f'
-$secret = '307a4df53674647ae67e848a102b96e178bc99ab'
+$DaData = (Get-Content "C:\Temp\DadataTokens.json" -Encoding "UTF8") | ConvertFrom-Json
+$token = $DaData.token
+$secret = $DaData.secret
+
 $flag = (Get-Content "C:\Temp\DataExport.json" -Encoding "UTF8") | ConvertFrom-Json
 if ($flag.DataExportSuccess -eq "True") {
     
@@ -25,14 +27,14 @@ if ($flag.DataExportSuccess -eq "True") {
     
     Set-Location -Path "C:\Temp"
     if ([Environment]::Is64BitOperatingSystem) {
-        $zabbixAgentName    = "zabbix_agent2-6.4.9-windows-amd64-openssl.msi"
+        $zabbixAgentName = "zabbix_agent2-6.4.9-windows-amd64-openssl.msi"
     }else {
-        $zabbixAgentName    = "zabbix_agent2-6.4.9-windows-i386-openssl.msi"
+        $zabbixAgentName = "zabbix_agent2-6.4.9-windows-i386-openssl.msi"
     }
-    $hostname = [System.Environment]::GetEnvironmentVariable('ZabbixHostName', 'Machine')
-    if ($hostname -eq $null) {
+    $hostname = (Get-Content "C:\Temp\HostName.json" -Encoding "UTF8") | ConvertFrom-Json
+    if ($null -eq $hostname.ZabbixHostName) {
+        @(ZabbixHostName="$inn-$iso_code-$salt-POS") | ConvertTo-Json | Set-Content "C:\Temp\HostName.json" -Encoding "UTF8"
         $hostname = "$inn-$iso_code-$salt-POS"
-        [Environment]::SetEnvironmentVariable('ZabbixHostName', "$hostname", 'Machine')
     }
 
     $zabbixInstallFolder = "C:\Program Files\Zabbix Agent 2"
