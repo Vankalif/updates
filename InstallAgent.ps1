@@ -31,9 +31,11 @@ if ($flag.DataExportSuccess -eq "True") {
     }else {
         $zabbixAgentName = "zabbix_agent2-6.4.9-windows-i386-openssl.msi"
     }
+
     $hostname = (Get-Content "C:\Temp\HostName.json" -Encoding "UTF8") | ConvertFrom-Json
+    
     if ($null -eq $hostname.ZabbixHostName) {
-        @(ZabbixHostName="$inn-$iso_code-$salt-POS") | ConvertTo-Json | Set-Content "C:\Temp\HostName.json" -Encoding "UTF8"
+        @{ZabbixHostName="$inn-$iso_code-$salt-POS"} | ConvertTo-Json | Set-Content "C:\Temp\HostName.json" -Encoding "UTF8"
         $hostname = "$inn-$iso_code-$salt-POS"
     }
 
