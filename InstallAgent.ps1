@@ -21,6 +21,7 @@ if ($flag.DataExportSuccess -eq "True") {
     @{geo_lat="$g_lat"; geo_lon="$g_lon"} | ConvertTo-Json | Set-Content "C:\ProgramData\POS_GEO_DATA.json" -Encoding "UTF8"
     $salt = -join ((65..90) | Get-Random -Count 9 | ForEach-Object {[char]$_})
     $inn = $KKMData[0].inn
+    $inn = $inn.Trim()
     $mystream = [IO.MemoryStream]::new([byte[]][char[]]$iso_code)
     $hostmetadata = Get-FileHash -InputStream $mystream -Algorithm MD5
     $hostmetadata = $hostmetadata.hash.tolower()
