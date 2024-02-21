@@ -3,18 +3,28 @@ $token = $DaData.token
 $secret = $DaData.secret
 
 $flag = (Get-Content "C:\Temp\DataExport.json" -Encoding "UTF8") | ConvertFrom-Json
-if ($flag.DataExportSuccess -eq "True") {
+if ($flag.DataExportSuccess -eq "True")
+{
     
     $KKMData = (Get-Content "C:\ProgramData\KKMData.json" -Encoding "UTF8") | ConvertFrom-Json
-    $addr = $KKMData[0].pos_address
-    $headers = @{
-        Accept = 'application/json; charset=utf-8'
-        Authorization = 'Token ' + $token
-        'X-Secret' = $secret
+
+    if (-not (Test-Path -Path "C:\Temp\DadataInfo.json")) 
+    {
+        $addr = $KKMData[0].pos_address
+        $headers = @{
+            Accept = 'application/json; charset=utf-8'
+            Authorization = 'Token ' + $token
+            'X-Secret' = $secret
+        }
+        $body = ConvertTo-Json @("$addr")
+        $response = Invoke-RestMethod 'https://cleaner.dadata.ru/api/v1/clean/address' -Method POST -ContentType "application/json; charset=Windows-1251" -Headers $headers -Body $body
+        Set-Content -Value $response "C:\Temp\DadataInfo.json" -Encoding "UTF-8"
+    }
+    else
+    {
+        $response = Get-Content "C:\Temp\DadataInfo.json" -Encoding "UTF-8" | ConvertFrom-Json    
     }
 
-    $body = ConvertTo-Json @("$addr")
-    $response = Invoke-RestMethod 'https://cleaner.dadata.ru/api/v1/clean/address' -Method POST -ContentType "application/json; charset=Windows-1251" -Headers $headers -Body $body
     $iso_code = $response.region_iso_code
     $g_lat = $response.geo_lat
     $g_lon = $response.geo_lon
@@ -27,15 +37,19 @@ if ($flag.DataExportSuccess -eq "True") {
     $hostmetadata = $hostmetadata.hash.tolower()
     
     Set-Location -Path "C:\Temp"
-    if ([Environment]::Is64BitOperatingSystem) {
+    if ([Environment]::Is64BitOperatingSystem)
+    {
         $zabbixAgentName = "zabbix_agent2-6.4.9-windows-amd64-openssl.msi"
-    }else {
+    }
+    else
+    {
         $zabbixAgentName = "zabbix_agent2-6.4.9-windows-i386-openssl.msi"
     }
 
     $hostname = (Get-Content "C:\Temp\HostName.json" -Encoding "UTF8") | ConvertFrom-Json
     
-    if ($null -eq $hostname.ZabbixHostName) {
+    if ($null -eq $hostname.ZabbixHostName)
+    {
         @{ZabbixHostName="$inn-$iso_code-$salt-POS"} | ConvertTo-Json | Set-Content "C:\Temp\HostName.json" -Encoding "UTF8"
         $hostname = "$inn-$iso_code-$salt-POS"
     }

@@ -14,42 +14,44 @@ $secret = $dadataObj.secret
 $jsonString = (Get-Content "$tmp_folder\DataExport.json" -Encoding "UTF8")
 $flag = $serializer.DeserializeObject($jsonString)
 if ($flag.DataExportSuccess -eq "True")
-{
-    
+{   
     $jsonString = (Get-Content "$prog_data\KKMData.json" -Encoding "UTF8")
     $KKMData = $serializer.DeserializeObject($jsonString)
-    $addr = $KKMData[0].pos_address
-    $addr = '["' + $addr + '"]'
-    Set-Content "$tmp_folder\PosAddr.json" -Value $addr -Encoding "UTF8"
-    
-    $Accept = 'Accept: application/json'
-    $Cont = 'Content-Type: application/json'
-    $Auth = 'Authorization: Token ' + $token
-    $XSec = 'X-Secret: ' + $secret
-    cmd.exe /c @"
+
+    if (-not (Test-Path -Path "$tmp_folder\response.json"))
+    {
+        $addr = $KKMData[0].pos_address
+        $addr = '["' + $addr + '"]'
+        Set-Content "$tmp_folder\PosAddr.json" -Value $addr -Encoding "UTF8"
+        
+        $Accept = 'Accept: application/json'
+        $Cont = 'Content-Type: application/json'
+        $Auth = 'Authorization: Token ' + $token
+        $XSec = 'X-Secret: ' + $secret
+        cmd.exe /c @"
 C:\Temp\curl-8.6.0_1-win32-mingw\bin\curl.exe -X POST -L "https://cleaner.dadata.ru/api/v1/clean/address" -H "$Cont" -H "$Accept" -H "$Auth" -H "$XSec" -d @PosAddr.json -o "response.json"
-"@   
+"@
+    }
+
     $response = (Get-Content "$tmp_folder\response.json" -Encoding "UTF8")
     $response = $serializer.DeserializeObject($response)[0]
-    
     $iso_code = $response.region_iso_code
     $g_lat = $response.geo_lat
     $g_lon = $response.geo_lon
     $jsonOutput = @{geo_lat="$g_lat"; geo_lon="$g_lon"}
     $jsonOutput = $serializer.Serialize($jsonOutput)
     Set-Content "$prog_data\POS_GEO_DATA.json" -Value $jsonOutput -Encoding "UTF8"
-    
     $salt = -join ((65..90) | Get-Random -Count 9 | ForEach-Object {[char]$_})
     $inn = $KKMData[0].inn.Trim()
-    
     $md5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
     $utf8 = New-Object -TypeName System.Text.UTF8Encoding
     $hostmetadata = ([System.BitConverter]::ToString($md5.ComputeHash($utf8.GetBytes($iso_code)))).replace("-","").ToLower()
     
-    if ([Environment]::Is64BitOperatingSystem)
+    if ((Get-WmiObject win32_operatingsystem | select osarchitecture).osarchitecture -eq "64-bit")
     {
         $zabbixAgentName = "zabbix_agent2-6.4.9-windows-amd64-openssl.msi"
-    }else
+    }
+    else
     {
         $zabbixAgentName = "zabbix_agent2-6.4.9-windows-i386-openssl.msi"
     }
