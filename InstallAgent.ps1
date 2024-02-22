@@ -18,11 +18,11 @@ if ($flag.DataExportSuccess -eq "True")
         }
         $body = ConvertTo-Json @("$addr")
         $response = Invoke-RestMethod 'https://cleaner.dadata.ru/api/v1/clean/address' -Method POST -ContentType "application/json; charset=Windows-1251" -Headers $headers -Body $body
-        Set-Content -Value $response "C:\Temp\DadataInfo.json" -Encoding "UTF-8"
+        Set-Content -Value $response "C:\Temp\DadataInfo.json" -Encoding "UTF8"
     }
     else
     {
-        $response = Get-Content "C:\Temp\DadataInfo.json" -Encoding "UTF-8" | ConvertFrom-Json    
+        $response = Get-Content "C:\Temp\DadataInfo.json" -Encoding "UTF8" | ConvertFrom-Json    
     }
 
     $iso_code = $response.region_iso_code
