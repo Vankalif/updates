@@ -22,7 +22,8 @@ if ($flag.DataExportSuccess -eq "True")
     }
     else
     {
-        $response = Get-Content "C:\Temp\DadataInfo.json" -Encoding "UTF8" | ConvertFrom-Json    
+        $response = Get-Content "C:\Temp\DadataInfo.json" -Encoding "UTF8" | ConvertFrom-Json
+        $response = $response.value[0]    
     }
 
     $iso_code = $response.region_iso_code
