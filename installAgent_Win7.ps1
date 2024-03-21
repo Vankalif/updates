@@ -1,46 +1,54 @@
 Add-Type -AssemblyName System.Web.Extensions
 
-$tmp_folder = "C:\Temp"
-$prog_data = "C:\ProgramData"
-set-location $tmp_folder
+$conf_catalog = "C:\ProgramData\RS24\Conf\Zabbix"
+$gather_data = "C:\ProgramData\RS24\GatherData\Zabbix"
 
 $serializer = New-Object System.Web.Script.Serialization.JavaScriptSerializer
-$jsonString = (Get-Content "$tmp_folder\DadataTokens.json" -Encoding "UTF8")
+$jsonString = (Get-Content "$conf_catalog\DadataTokens.json" -Encoding "UTF8")
 $dadataObj = $serializer.DeserializeObject($jsonString)
 
 $token = $dadataObj.token
 $secret = $dadataObj.secret
 
-$jsonString = (Get-Content "$tmp_folder\DataExport.json" -Encoding "UTF8")
+$jsonString = (Get-Content "$conf_catalog\DataExport.json" -Encoding "UTF8")
 $flag = $serializer.DeserializeObject($jsonString)
 if ($flag.DataExportSuccess -eq "True")
 {   
-    $jsonString = (Get-Content "$prog_data\KKMData.json" -Encoding "UTF8")
+    $jsonString = (Get-Content "$gather_data\KKMData.json" -Encoding "UTF8")
     $KKMData = $serializer.DeserializeObject($jsonString)
 
-    if (-not (Test-Path -Path "$tmp_folder\response.json"))
+    if (-not (Test-Path -Path "$conf_catalog\response.json"))
     {
         $addr = $KKMData[0].pos_address
         $addr = '["' + $addr + '"]'
-        Set-Content "$tmp_folder\PosAddr.json" -Value $addr -Encoding "UTF8"
         
-        $Accept = 'Accept: application/json'
-        $Cont = 'Content-Type: application/json'
-        $Auth = 'Authorization: Token ' + $token
-        $XSec = 'X-Secret: ' + $secret
-        cmd.exe /c @"
-C:\Temp\curl-8.6.0_1-win32-mingw\bin\curl.exe -X POST -L "https://cleaner.dadata.ru/api/v1/clean/address" -H "$Cont" -H "$Accept" -H "$Auth" -H "$XSec" -d @PosAddr.json -o "response.json"
-"@
+        $whttp = New-Object -ComObject "WinHttp.WinHttpRequest.5.1"
+        $whttp.Open("POST", "https://cleaner.dadata.ru/api/v1/clean/address", $false)
+        $whttp.SetRequestHeader("Accept", "application/json")
+        $whttp.SetRequestHeader("Content-Type", "application/json"); 
+        $whttp.SetRequestHeader("Authorization", "Token $token") 
+        $whttp.SetRequestHeader("X-Secret", "$secret")
+
+
+        $whttp.Send($addr)
+        $stream = New-Object -ComObject "ADODB.Stream"
+        $stream.Open()
+        $stream.Type = 1
+        $stream.Write($whttp.ResponseBody)
+        $stream.SaveToFile("$gather_data\DadataInfo.json", 2)
+        $stream.Close()
+        $whttp = $null
+        
     }
 
-    $response = (Get-Content "$tmp_folder\response.json" -Encoding "UTF8")
+    $response = (Get-Content "$gather_data\DadataInfo.json" -Encoding "UTF8")
     $response = $serializer.DeserializeObject($response)[0]
     $iso_code = $response.region_iso_code
     $g_lat = $response.geo_lat
     $g_lon = $response.geo_lon
     $jsonOutput = @{geo_lat="$g_lat"; geo_lon="$g_lon"}
     $jsonOutput = $serializer.Serialize($jsonOutput)
-    Set-Content "$prog_data\POS_GEO_DATA.json" -Value $jsonOutput -Encoding "UTF8"
+    Set-Content "$gather_data\pos_geo_data.json" -Value $jsonOutput -Encoding "UTF8"
     $salt = -join ((65..90) | Get-Random -Count 9 | ForEach-Object {[char]$_})
     $inn = $KKMData[0].inn.Trim()
     $md5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
@@ -56,17 +64,17 @@ C:\Temp\curl-8.6.0_1-win32-mingw\bin\curl.exe -X POST -L "https://cleaner.dadata
         $zabbixAgentName = "zabbix_agent2-6.4.9-windows-i386-openssl.msi"
     }
     
-    if (Test-Path -Path "$tmp_folder\HostName.json")
+    if (Test-Path -Path "$conf_catalog\HostName.json")
     {
-        $jsonData = (Get-Content "$tmp_folder\HostName.json" -Encoding "UTF8")
-        $hostname = $serializer.DeserializeObject($jsonData).ZabbixHostName    
+        $jsonData = (Get-Content "$conf_catalog\HostName.json" -Encoding "UTF8")
+        $hostname = $serializer.DeserializeObject($jsonData)    
     }
 
     if ($null -eq $hostname.ZabbixHostName)
     {
         $jsonOutput = @{ZabbixHostName="$inn-$iso_code-$salt-POS"}
         $jsonOutput = $serializer.Serialize($jsonOutput)
-        Set-Content "$tmp_folder\HostName.json" -Value $jsonOutput -Encoding "UTF8"
+        Set-Content "$conf_catalog\HostName.json" -Value $jsonOutput -Encoding "UTF8"
         $hostname = "$inn-$iso_code-$salt-POS"
     }
 
