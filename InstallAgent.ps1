@@ -1,6 +1,7 @@
 $RootFolder = "C:\ProgramData\RS24"
 $conf_catalog = "$RootFolder\Conf\Zabbix"
 $gather_data = "$RootFolder\GatherData\Zabbix"
+$bin_catalog = "$RootFolder\Binaries"
 
 $DaData = (Get-Content "$conf_catalog\DadataTokens.json" -Encoding "UTF8") | ConvertFrom-Json
 $token = $DaData.token
@@ -62,6 +63,7 @@ if ($flag.DataExportSuccess -eq "True")
     
 
     $zabbixInstallFolder = "C:\Program Files\Zabbix Agent 2"
+    Set-Location $bin_catalog
     msiexec.exe /l*v log.txt /i $zabbixAgentName /qn LOGTYPE=file LOGFILE=`"$zabbixInstallFolder\zabbix_agentd.log`" SERVER=office.retailservice24.ru SERVERACTIVE=office.retailservice24.ru HOSTNAME=$hostname TLSCONNECT=psk TLSACCEPT=psk TLSPSKIDENTITY=2839f5ebfd61d1ecf123be8ba458ed78 TLSPSKFILE=`"$zabbixInstallFolder\secret.psk`" TLSPSKVALUE=6a2a05db5cfa79cc1ffd6f9e18853140eeb36f306c8381be9bef1d8ebdec1cb6 HOSTMETADATA=$hostmetadata ENABLEPATH=1 INSTALLFOLDER=`"$zabbixInstallFolder`"
     Unregister-ScheduledTask -TaskName "InstallZabbixAgent" -Confirm:$false
 }        
